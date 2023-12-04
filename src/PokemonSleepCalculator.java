@@ -32,9 +32,13 @@ public class PokemonSleepCalculator {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
         if (sleptHours == 0) {
-            double remainingTime = neededScore / (currentEnergy * MAX_SLEEP_SCORE * sleepScoreMultiplier) * FULL_SLEEP_HOURS; // in hours
+            double requiredMultiplier = Math.ceil(neededScore * 100 / (currentEnergy * MAX_SLEEP_SCORE * sleepScoreMultiplier)) / 100; // multiply by 100, round up, then divide by 100            double remainingTime = requiredMultiplier * FULL_SLEEP_HOURS; // calculate the remaining time based on the rounded up multiplier//            double remainingTime = neededScore / (currentEnergy * MAX_SLEEP_SCORE * sleepScoreMultiplier) * FULL_SLEEP_HOURS; // in hours
+            double remainingTime = requiredMultiplier * FULL_SLEEP_HOURS; // calculate the remaining time based on the rounded up multiplier
+            if (requiredMultiplier > 8.5) {
+                return "The required score cannot be achieved with the current energy.";
+            }
             int hours = (int) remainingTime;
-            int minutes = (int) Math.round((remainingTime - hours) * 60);
+            int minutes = (int) Math.ceil((remainingTime - hours) * 60); // round up the minutes
             LocalDateTime timeA = now;
             LocalDateTime timeB = timeA.plusMinutes(20);
             LocalDateTime timeC = timeB.plusHours(hours).plusMinutes(minutes).minusMinutes(30); // subtract the first 20 minutes and the later 10 minutes
