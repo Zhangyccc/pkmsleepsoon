@@ -19,13 +19,19 @@ public class PokemonSleepCalculator {
             new Island("冰原", new long[] {0, 2834850, 7143777, 15415155, 28537400, 65143536, 65712275})
     };
 
+    public enum SleepType {
+        LIGHT_SLEEP,
+        NORMAL_SLEEP,
+        DEEP_SLEEP
+    }
+
     public static void main(String[] args) {
         // 测试数据
-        System.out.println(calculateSleepTime(2, 8, 0, 519406, 1));  // 第一个岛，7只宝可梦，第一次睡眠，当前能量355654
+        System.out.println(calculateSleepTime(0, 7, 0, 154159, 1, SleepType.DEEP_SLEEP));  // 第一个岛，7只宝可梦，第一次睡眠，当前能量355654
         //System.out.println(calculateSleepTime(2, 7, 4, 355654));  // 第一个岛，7只宝可梦，已睡4小时，当前能量355654
     }
 
-    public static String calculateSleepTime(int islandIndex, int targetPokemonCount, double sleptHours, double currentEnergy, double sleepScoreMultiplier) {
+    public static String calculateSleepTime(int islandIndex, int targetPokemonCount, double sleptHours, double currentEnergy, double sleepScoreMultiplier, SleepType sleepType) {
         Island island = ISLANDS[islandIndex];
         long neededScore = island.getMinScore(targetPokemonCount);
         LocalDateTime now = LocalDateTime.now();
@@ -39,19 +45,53 @@ public class PokemonSleepCalculator {
             }
             int hours = (int) remainingTime;
             int minutes = (int) Math.ceil((remainingTime - hours) * 60); // round up the minutes
-            LocalDateTime timeA = now;
-            LocalDateTime timeB = timeA.plusMinutes(20);
-            LocalDateTime timeC = timeB.plusHours(hours).plusMinutes(minutes).minusMinutes(30); // subtract the first 20 minutes and the later 10 minutes
-            LocalDateTime timeD = timeB.plusMinutes(10); // timeB after 10 minutes of statically remaining
-            return "你需要再睡" + hours + "小时" + minutes + "分钟才能在" + island.getName() + "遇到" + targetPokemonCount + "只宝可梦。"
-                    + "\n\n秒睡过程如下："
-                    + "\n初始记录时间A: " + timeA.format(formatter)
-                    + "\n↓ 静置20分钟"
-                    + "\n时间B: " + timeB.format(formatter)
-                    + "\n↓ 向后调整" + hours + "小时" + minutes + "分钟并减去30分钟"
-                    + "\n时间C: " + timeC.format(formatter)
-                    + "\n↓ 静置10分钟"
-                    + "\n时间D: " + timeD.format(formatter);
+            String advice = "init";
+            LocalDateTime timeEndOfWaiting;
+            LocalDateTime timeAdjusted;
+            LocalDateTime timeEndOfRest;
+            //根据睡眠类型给予不同建议
+            switch (sleepType) {
+                case LIGHT_SLEEP:
+                    timeEndOfWaiting = now.plusMinutes(20);
+                    timeAdjusted = timeEndOfWaiting.plusHours(hours).plusMinutes(minutes).minusMinutes(20);
+                    advice = "请维持较弱的声响"
+                            + "\n你需要再睡" + hours + "小时" + minutes + "分钟才能在" + island.getName() + "遇到" + targetPokemonCount + "只宝可梦。"
+                            + "\n秒睡过程如下："
+                            + "\n初始记录时间: " + now.format(formatter)
+                            + "\n↓ 静置20分钟"
+                            + "\n静置后时间: " + timeEndOfWaiting.format(formatter)
+                            + "\n↓ 有一定幅度地摇动手机->向后调整" + hours + "小时" + minutes + "分钟并减去20分钟"
+                            + "\n调整后时间: " + timeAdjusted.format(formatter) + " -> 对应实际时间: " + timeEndOfWaiting.format(formatter);
+                    break;
+                case NORMAL_SLEEP:
+                    timeEndOfWaiting = now.plusMinutes(20);
+                    timeAdjusted = timeEndOfWaiting.plusHours(hours).plusMinutes(minutes).minusMinutes(30); // subtract the first 20 minutes and the later 10 minutes
+                    timeEndOfRest = timeAdjusted.plusMinutes(10); // timeC after 10 minutes of statically remaining
+                    advice = "请注意保持安静"
+                            + "\n你需要再睡" + hours + "小时" + minutes + "分钟才能在" + island.getName() + "遇到" + targetPokemonCount + "只宝可梦。"
+                            + "\n秒睡过程如下："
+                            + "\n初始记录时间: " + now.format(formatter)
+                            + "\n↓ 静置20分钟"
+                            + "\n静置后时间: " + timeEndOfWaiting.format(formatter)
+                            + "\n↓ 向后调整" + hours + "小时" + minutes + "分钟并减去30分钟"
+                            + "\n调整后时间: " + timeAdjusted.format(formatter) + " -> 对应实际时间: " + timeEndOfWaiting.format(formatter)
+                            + "\n↓ 静置10分钟"
+                            + "\n最终时间: " + timeEndOfRest.format(formatter) + " -> 对应实际时间: " + timeEndOfWaiting.plusMinutes(10).format(formatter);
+                    break;
+                case DEEP_SLEEP:
+                    timeEndOfWaiting = now.plusMinutes(20);
+                    timeAdjusted = timeEndOfWaiting.plusHours(hours).plusMinutes(minutes).minusMinutes(20);
+                    advice = "请注意保持安静"
+                            + "\n你需要再睡" + hours + "小时" + minutes + "分钟才能在" + island.getName() + "遇到" + targetPokemonCount + "只宝可梦。"
+                            + "\n秒睡过程如下："
+                            + "\n初始记录时间: " + now.format(formatter)
+                            + "\n↓ 静置20分钟"
+                            + "\n静置后时间: " + timeEndOfWaiting.format(formatter)
+                            + "\n↓ 向后调整" + hours + "小时" + minutes + "分钟并减去20分钟"
+                            + "\n调整后时间: " + timeAdjusted.format(formatter) + " -> 对应实际时间: " + timeEndOfWaiting.format(formatter);
+                    break;
+            }
+            return advice;
         } else {
             double sleptScore = Math.min(MAX_SLEEP_SCORE, sleptHours / FULL_SLEEP_HOURS * MAX_SLEEP_SCORE);
             double currentScore = sleptScore * currentEnergy * sleepScoreMultiplier;
